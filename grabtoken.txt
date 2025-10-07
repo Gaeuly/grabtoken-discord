@@ -1,0 +1,164 @@
+// ==UserScript==
+// @name         Discord Token Grabber (gaeuly Dev)
+// @namespace    http://tampermonkey.net/
+// @version      2.2
+// @description  Get Discord token easily
+// @author       gaeuly Dev (modified)
+// @match        https://discord.com/*
+// @run-at       document-end
+// @grant        none
+// ==/UserScript==
+
+
+(function () {
+    'use strict';
+
+
+    document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && ['+', '-', '0'].includes(e.key)) e.preventDefault();
+    });
+
+
+    function copyToClipboard(text) {
+        return navigator.clipboard.writeText(text)
+            .then(() => true)
+            .catch(err => {
+                console.error('Clipboard error:', err);
+                return false;
+            });
+    }
+
+
+    const notifContainer = document.createElement('div');
+    notifContainer.style.position = 'fixed';
+    notifContainer.style.top = '70px';
+    notifContainer.style.left = '50%';
+    notifContainer.style.transform = 'translateX(-50%)';
+    notifContainer.style.display = 'flex';
+    notifContainer.style.flexDirection = 'column';
+    notifContainer.style.alignItems = 'center';
+    notifContainer.style.zIndex = '99999';
+    notifContainer.style.pointerEvents = 'none';
+    document.body.appendChild(notifContainer);
+
+    function showNotification(message, success = true) {
+        const notif = document.createElement('div');
+        notif.textContent = message + "\n (Developed by gaeuly)";
+        notif.style.background = success ? '#4CAF50' : '#E53935';
+        notif.style.color = '#fff';
+        notif.style.padding = '10px 20px';
+        notif.style.margin = '5px 0';
+        notif.style.borderRadius = '10px';
+        notif.style.fontSize = '14px';
+        notif.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        notif.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        notif.style.opacity = '0';
+        notif.style.transform = 'translateY(-10px)';
+        notifContainer.appendChild(notif);
+
+        requestAnimationFrame(() => {
+            notif.style.opacity = '1';
+            notif.style.transform = 'translateY(0)';
+        });
+
+        setTimeout(() => {
+            notif.style.opacity = '0';
+            notif.style.transform = 'translateY(-10px)';
+            setTimeout(() => notif.remove(), 400);
+        }, 3000);
+    }
+
+
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.top = '10px';
+    container.style.left = '50%';
+    container.style.transform = 'translateX(-50%)';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'row';
+    container.style.gap = '10px';
+    container.style.zIndex = '9999';
+    container.style.alignItems = 'center';
+    container.style.padding = '8px 12px';
+    container.style.background = 'rgba(0,0,0,0.4)';
+    container.style.borderRadius = '10px';
+    container.style.backdropFilter = 'blur(8px)';
+    container.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+    container.style.flexWrap = 'wrap';
+    container.style.maxWidth = '95vw';
+    container.style.justifyContent = 'center';
+    document.body.appendChild(container);
+
+
+    function createButton(text, color) {
+        const btn = document.createElement('button');
+        btn.textContent = text;
+        btn.style.padding = '10px 14px';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '8px';
+        btn.style.fontSize = '14px';
+        btn.style.color = 'white';
+        btn.style.background = color;
+        btn.style.cursor = 'pointer';
+        btn.style.transition = 'transform 0.2s ease, background 0.2s ease';
+        btn.addEventListener('touchstart', () => btn.style.transform = 'scale(0.95)');
+        btn.addEventListener('touchend', () => btn.style.transform = 'scale(1)');
+        btn.onmouseenter = () => btn.style.opacity = '0.85';
+        btn.onmouseleave = () => btn.style.opacity = '1';
+        return btn;
+    }
+
+
+    const tokenBtn = createButton('Get Discord Token', '#4956B0');
+
+    tokenBtn.onclick = async function () {
+        try {
+            if (!window.webpackChunkdiscord_app) {
+                showNotification('⚠️ webpackChunk not found', false);
+                return;
+            }
+
+            let found = false;
+
+
+            window.webpackChunkdiscord_app.push([
+                [Math.random()],
+                {},
+                async (req) => {
+                    if (!req?.c) return;
+
+                    for (const m of Object.values(req.c)) {
+                        const exp = m?.exports;
+                        if (exp && typeof exp.getToken === 'function') {
+                            const token = exp.getToken();
+                            if (token) {
+                                found = true;
+                                const ok = await copyToClipboard(token);
+                                if (ok) {
+                                    showNotification('✅ Token copied successfully!');
+                                    console.log('Your Discord token:', token);
+                                } else {
+                                    showNotification('❌ Failed to copy token', false);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                },
+            ]);
+
+
+            setTimeout(() => {
+                window.webpackChunkdiscord_app.pop();
+                if (!found) showNotification('❌ Token not found', false);
+            }, 100);
+        } catch (err) {
+            console.error(err);
+            showNotification('💥 Error getting token', false);
+        }
+    };
+
+    container.appendChild(tokenBtn);
+
+})();
